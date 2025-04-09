@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Item Claims - Lost and Found</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="logo" onclick="window.location.href='home.html'">
+        LOST & FOUND
+      </div>
+      <div class="nav-profile-container">
+        <nav>
+          <a href="home.html">Home</a>
+          <a href="items.html">Found Item</a>
+          <a href="post.html">Post Item</a>
+          <a href="lost.html">Lost Item</a>
+        </nav>
+        <img src="images/profile-pic.png" alt="profile" class="user-pic" />
+        <div class="sub-menu-wrap">
+          <div class="sub-menu">
+            <div class="user-info">
+              <img src="images/profile-pic.png" />
+              <h3 id="user-name">User</h3>
+            </div>
+            <hr />
+            <a href="account.html" class="sub-menu-link">
+              <img src="images/profile.png" />
+              <p>Your Account</p>
+              <span>></span>
+            </a>
+            <a href="claims.html" class="sub-menu-link">
+              <img src="images/claims.png" />
+              <p>Item Claims</p>
+              <span>></span>
+            </a>
+            <a href="#" class="sub-menu-link" id="logout-link">
+              <img src="images/logout.png" />
+              <p>Logout</p>
+              <span>></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="claims-page">
+      <h2>Claims for Your Items</h2>
+      <div class="claims-container">
+        <div id="claims-list">
+          <p class="loading-text">Loading claims...</p>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Toggle profile submenu
+      const userPic = document.querySelector(".user-pic");
+      const subMenuWrap = document.querySelector(".sub-menu-wrap");
+
+      userPic.addEventListener("click", () => {
+        subMenuWrap.classList.toggle("open");
+      });
+
+      // Check if user is logged in
+      document.addEventListener("DOMContentLoaded", function () {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        // Load user data
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user) {
+          document.getElementById("user-name").textContent = user.name;
+        }
+
+        // Load claims
+        loadClaims();
+
+        // Logout functionality
+        document
+          .getElementById("logout-link")
+          .addEventListener("click", function (e) {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "login.html";
+          });
+      });
+
+      // Function to load claims
+      async function loadClaims() {
+        const token = localStorage.getItem("token");
+        const claimsContainer = document.getElementById("claims-list");
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/my-items/claims",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(
+              `Server returned ${response.status}: ${response.statusText}`
+            );
+          }
+
+          const data = await response.json();
+
+          if (data.count === 0) {
+            claimsContainer.innerHTML =
+              "<p class='no-items'>You have no claims for your items</p>";
+            return;
+          }
+
+          claimsContainer.innerHTML = "";
+
+          data.data.forEach((claim) => {
+            const claimElement = document.createElement("div");
+            claimElement.className = "claim-card";
+
+            let responsesHtml = "";
+            claim.responses.forEach((response) => {
+              responsesHtml += `
+              <div class="response-item">
+                <p><strong>Question:</strong> ${response.question}</p>
+                <p><strong>Answer:</strong> ${response.answer}</p>
+              </div>
+            `;
+            });
+
+            const statusClass =
+              claim.status === "pending"
+                ? "status-pending"
+                : claim.status === "approved"
+                ? "status-approved"
+                : "status-rejected";
+
+            claimElement.innerHTML = `
+            <div class="claim-header">
+              <h3>Claim for ${claim.itemId.name}</h3>
+              <span class="claim-status ${statusClass}">${claim.status}</span>
+            </div>
+            <div class="claim-info">
+              <p><strong>Claimed by:</strong> ${claim.claimantId.name}</p>
+              <p><strong>Contact:</strong> ${claim.claimantId.email} | ${
+              claim.claimantId.phone
+            }</p>
+              <p><strong>Date:</strong> ${new Date(
+                claim.createdAt
+              ).toLocaleDateString()}</p>
+            </div>
+            <div class="claim-responses">
+              <h4>Verification Responses:</h4>
+              ${responsesHtml}
+            </div>
+            ${
+              claim.status === "pending"
+                ? `
+              <div class="claim-actions">
+                <button class="approve-btn" data-id="${claim._id}">Approve</button>
+                <button class="reject-btn" data-id="${claim._id}">Reject</button>
+              </div>
+            `
+                : ""
+            }
+          `;
+
+            claimsContainer.appendChild(claimElement);
+          });
+
+          // Add event listeners for approve/reject buttons
+          document.querySelectorAll(".approve-btn").forEach((btn) => {
+            btn.addEventListener("click", () =>
+              verifyClaim(btn.dataset.id, "approved")
+            );
+          });
+
+          document.querySelectorAll(".reject-btn").forEach((btn) => {
+            btn.addEventListener("click", () =>
+              verifyClaim(btn.dataset.id, "rejected")
+            );
+          });
+        } catch (error) {
+          console.error("Error:", error);
+          claimsContainer.innerHTML = `<p class="error-message">Error loading claims: ${error.message}</p>`;
+        }
+      }
+
+      // Function to verify a claim
+      async function verifyClaim(claimId, status) {
+        const token = localStorage.getItem("token");
+
+        try {
+          const response = await fetch(
+            `http://localhost:5000/api/claims/${claimId}/verify`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ status }),
+            }
+          );
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || `Failed to ${status} claim`);
+          }
+
+          // Reload claims after verification
+          loadClaims();
+        } catch (error) {
+          console.error("Error:", error);
+          alert(`Error: ${error.message}`);
+        }
+      }
+    </script>
+  </body>
+</html>

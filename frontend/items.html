@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Found Items - Lost and Found</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="logo" onclick="window.location.href='home.html'">
+        LOST & FOUND
+      </div>
+      <div class="nav-profile-container">
+        <nav>
+          <a href="home.html">Home</a>
+          <a href="post.html">Post Item</a>
+          <a href="lost.html">Lost Item</a>
+        </nav>
+        <img src="images/profile-pic.png" alt="profile" class="user-pic" />
+        <div class="sub-menu-wrap">
+          <div class="sub-menu">
+            <div class="user-info">
+              <img src="images/profile-pic.png" />
+              <h3>Tilak</h3>
+            </div>
+            <hr />
+            <a href="#" class="sub-menu-link">
+              <img src="images/profile.png" />
+              <p>Edit Profile</p>
+              <span>></span>
+            </a>
+            <a href="#" class="sub-menu-link">
+              <img src="images/settings.png" />
+              <p>Settings</p>
+              <span>></span>
+            </a>
+            <a href="#" class="sub-menu-link">
+              <img src="images/logout.png" />
+              <p>Logout</p>
+              <span>></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <h2>Found Items</h2>
+      <form class="search-bar" id="search-bar" role="search">
+        <input type="text" id="search-input" placeholder="Search items..." />
+        <button type="submit">Search</button>
+      </form>
+
+      <div id="item-not-found">
+        <p>
+          If your lost item is not available below
+          <a href="post_lost.html">click here</a>
+        </p>
+      </div>
+
+      <div class="items-container">
+        <!-- <div class="item-card">
+          <img src="images/wallet.png" alt="Found Wallet" />
+          <h3>Found Wallet</h3>
+          <p>Category: Bags/Wallets</p>
+          <p>Location: City Street Bench</p>
+          <p>Date: 2025-02-26</p>
+          <p>Time: 14:30</p>
+        </div>
+        <div class="item-card">
+          <img src="images/keys.png" alt="Found Keys" />
+          <h3>Found Keys</h3>
+          <p>Category: Keys</p>
+          <p>Location: Park</p>
+          <p>Date: 2025-02-25</p>
+          <p>Time: 10:15</p>
+        </div>
+        <div class="item-card">
+          <img src="images/phone.png" alt="Found Smartphone" />
+          <h3>Found Smartphone</h3>
+          <p>Category: Electronics</p>
+          <p>Location: Cafeteria</p>
+          <p>Date: 2025-02-24</p>
+          <p>Time: 12:45</p>
+        </div>
+        <div class="item-card">
+          <img src="images/glasses.png" alt="Found Eyeglasses" />
+          <h3>Found Eyeglasses</h3>
+          <p>Category: Eyewear</p>
+          <p>Location: Library</p>
+          <p>Date: 2025-02-23</p>
+          <p>Time: 16:20</p>
+        </div> -->
+      </div>
+    </main>
+
+    <script src="js/claim.js"></script>
+
+    <script>
+      // Check if user is logged in
+      document.addEventListener("DOMContentLoaded", function () {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          window.location.href = "login.html";
+        } else {
+          loadItems();
+        }
+      });
+
+      /* // Toggle menu for mobile
+      document
+        .querySelector(".menu-icon")
+        .addEventListener("click", function () {
+          document.querySelector(".nav-list").classList.toggle("show");
+        }); */
+
+      // Logout functionality
+      document
+        .querySelector(".sub-menu-link:last-child")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "login.html";
+        });
+
+      // Search form submission
+      document
+        .getElementById("search-bar")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          loadItems();
+        });
+
+      /* // Category filter change
+      document
+        .getElementById("category-filter")
+        .addEventListener("change", function () {
+          loadItems();
+        }); */
+
+      // Load items from API
+      async function loadItems() {
+        const searchQuery = document.getElementById("search-input").value || "";
+        const token = localStorage.getItem("token");
+
+        try {
+          const response = await fetch(
+            `http://localhost:5000/api/items?type=found&search=${searchQuery}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            displayItems(data.data || []);
+          } else {
+            console.error(
+              "Failed to fetch items:",
+              data.message || "Unknown error"
+            );
+            const container = document.querySelector(".items-container");
+            container.innerHTML =
+              "<p class='error-message'>Failed to load items. Please try again later.</p>";
+          }
+        } catch (error) {
+          console.error("Error fetching items:", error);
+          const container = document.querySelector(".items-container");
+          container.innerHTML =
+            "<p class='error-message'>Error connecting to server. Please try again later.</p>";
+        }
+      }
+
+      // Display items in the container
+      function displayItems(items) {
+        const container = document.querySelector(".items-container");
+        const notFoundMessage = document.getElementById("item-not-found");
+
+        // Always show the "not found" message
+        notFoundMessage.style.display = "block";
+
+        container.innerHTML = "";
+
+        if (!items || items.length === 0) {
+          container.innerHTML = "<p>No items found matching your criteria.</p>";
+        } else {
+          items.forEach((item) => {
+            const itemCard = document.createElement("div");
+            itemCard.className = "item-card";
+
+            // Format date
+            const itemDate = new Date(item.date).toLocaleDateString();
+
+            // Use placeholder image instead of actual image
+            itemCard.innerHTML = `
+        <div class="item-placeholder">
+          <p>Image hidden until verified</p>
+        </div>
+        <h3>${item.name}</h3>
+        <p><strong>Category:</strong> ${item.category}</p>
+        <p><strong>Description:</strong> ${item.description}</p>
+        <p><strong>Location:</strong> ${item.location}</p>
+        <p><strong>Date Found:</strong> ${itemDate}</p>
+        <p><strong>Time:</strong> ${item.time}</p>
+        <button class="claim-btn" data-item-id="${item._id}" data-item-name="${item.name}">Claim This Item</button>
+      `;
+
+            container.appendChild(itemCard);
+          });
+
+          // Add claim button event listeners
+          document.querySelectorAll(".claim-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              startClaimProcess(btn.dataset.itemId, btn.dataset.itemName);
+            });
+          });
+        }
+      }
+
+      // searching
+    </script>
+  </body>
+</html>

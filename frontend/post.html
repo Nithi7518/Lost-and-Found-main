@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post Found Item - Lost and Found</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header>
+    <div class="logo" onclick="window.location.href='home.html'">
+      LOST & FOUND
+    </div>
+    <div class="nav-profile-container">
+      <nav>
+        <a href="home.html">Home</a>
+        <a href="items.html">Found Item</a>
+        <a href="lost.html">Lost Item</a>
+      </nav>
+      <img src="images/profile-pic.png" alt="profile" class="user-pic" />
+      <div class="sub-menu-wrap">
+        <div class="sub-menu">
+          <div class="user-info">
+            <img src="images/profile-pic.png" />
+            <h3>Tilak</h3>
+          </div>
+          <hr />
+          <a href="#" class="sub-menu-link">
+            <img src="images/profile.png" />
+            <p>Edit Profile</p>
+            <span>></span>
+          </a>
+          <a href="#" class="sub-menu-link">
+            <img src="images/settings.png" />
+            <p>Settings</p>
+            <span>></span>
+          </a>
+          <a href="#" class="sub-menu-link">
+            <img src="images/logout.png" />
+            <p>Logout</p>
+            <span>></span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="post-item">
+    <h2>Post Found Item</h2>
+    <form id="post-form">
+      <input type="hidden" id="type" name="type" value="found" />
+      Name:
+      <input type="text" id="name" name="name" placeholder="Enter item name" required minlength="3" maxlength="50" />
+
+      Item Category:
+      <select id="category" name="category" required>
+        <option value="">Select a category</option>
+        <option value="electronics">Electronics</option>
+        <option value="personal_belongings">Personal Belongings</option>
+        <option value="documents">Documents/Cards</option>
+        <option value="clothing">Clothing</option>
+        <option value="accessories">Accessories</option>
+        <option value="keys">Keys</option>
+        <option value="bags">Bags/Wallets</option>
+        <option value="jewelry">Jewelry</option>
+        <option value="eyewear">Eyeglasses/Sunglasses</option>
+        <option value="umbrellas">Umbrellas</option>
+        <option value="chargers">Chargers</option>
+        <option value="headphones">Headphones</option>
+        <option value="water_bottles">Water Bottles</option>
+        <option value="other">Other</option>
+      </select>
+
+      Description:
+      <textarea id="description" name="description" placeholder="Provide a brief description..." rows="4" required
+        minlength="10" maxlength="500"></textarea>
+
+      Date Found:
+      <input type="date" id="date-found" name="date" required max="" />
+
+      Time Found:
+      <input type="time" id="time-found" name="time" required />
+
+      Location Found:
+      <input type="text" id="location" name="location" placeholder="Enter location where item was found" required
+        minlength="5" maxlength="100" />
+
+      Upload Image:
+      <input type="file" id="image" name="image" accept="image/*" />
+
+      <div class="verification-section">
+        <h3>Verification Questions</h3>
+        <p>
+          Add questions that will help identify the true owner of this item
+        </p>
+
+        <div id="questions-container">
+          <div class="question-pair">
+            <input type="text" class="question-input" placeholder="Question (e.g., What color is it?)" required />
+            <input type="text" class="answer-input" placeholder="Answer" required />
+            <button type="button" class="remove-question">Remove</button>
+          </div>
+        </div>
+
+        <button type="button" id="add-question" class="secondary-btn">
+          Add Another Question
+        </button>
+      </div>
+
+      <button type="submit">Submit</button>
+    </form>
+    <p id="postMessage"></p>
+  </main>
+
+  <script>
+    // Set a timeout for logout after 5 minutes (300,000 milliseconds)
+    setTimeout(() => {
+      // Clear token and user data from localStorage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Notify the user and redirect to the login page
+      alert("You have been logged out due to inactivity.");
+      window.location.href = "login.html";
+    }, 300000); // 5 minutes in milliseconds
+
+    let logoutTimer;
+
+    // Function to reset the logout timer
+    function resetLogoutTimer() {
+      clearTimeout(logoutTimer);
+
+      // Start a new timer for logout after 5 minutes
+      logoutTimer = setTimeout(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        alert("You have been logged out due to inactivity.");
+        window.location.href = "login.html";
+      }, 300000); // 5 minutes in milliseconds
+    }
+
+    // Start the initial timer
+    resetLogoutTimer();
+
+    // Add event listeners for user activity
+    document.addEventListener("mousemove", resetLogoutTimer);
+    document.addEventListener("keypress", resetLogoutTimer);
+
+
+    // Check if user is logged in
+    document.addEventListener("DOMContentLoaded", function () {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "login.html";
+      }
+
+      // Set max date to today
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("date-found").setAttribute("max", today);
+
+      // Add event listener for "Add Another Question" button
+      document
+        .getElementById("add-question")
+        .addEventListener("click", function () {
+          const container = document.getElementById("questions-container");
+          const newQuestion = document.createElement("div");
+          newQuestion.className = "question-pair";
+          newQuestion.innerHTML = `
+      <input type="text" class="question-input" placeholder="Question (e.g., What color is it?)" required>
+      <input type="text" class="answer-input" placeholder="Answer" required>
+      <button type="button" class="remove-question">Remove</button>
+    `;
+          container.appendChild(newQuestion);
+
+          // Add remove functionality
+          newQuestion
+            .querySelector(".remove-question")
+            .addEventListener("click", function () {
+              container.removeChild(newQuestion);
+            });
+        });
+
+      // Add remove functionality to the initial question
+      document
+        .querySelector(".remove-question")
+        .addEventListener("click", function () {
+          if (document.querySelectorAll(".question-pair").length > 1) {
+            this.parentElement.remove();
+          } else {
+            alert("You need at least one verification question");
+          }
+        });
+    });
+
+    /* // Toggle menu for mobile
+    document
+      .querySelector(".menu-icon")
+      .addEventListener("click", function () {
+        document.querySelector(".nav-list").classList.toggle("show");
+      }); */
+
+    /* // Logout functionality
+    document
+      .getElementById("logoutBtn")
+      .addEventListener("click", function (e) {
+        e.preventDefault();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "login.html";
+      }); */
+
+    // Form submission
+    document
+      .getElementById("post-form")
+      .addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const token = localStorage.getItem("token");
+        if (!token) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        // Collect verification questions and answers
+        const questions = [];
+        document.querySelectorAll(".question-pair").forEach((pair) => {
+          const question = pair.querySelector(".question-input").value.trim();
+          const answer = pair.querySelector(".answer-input").value.trim();
+
+          if (question && answer) {
+            questions.push({ question, answer });
+          }
+        });
+
+        // Validate questions for found items
+        const itemType = document.getElementById("type").value;
+        if (itemType === "found" && questions.length === 0) {
+          alert(
+            "Please add at least one verification question for found items"
+          );
+          return;
+        }
+
+        const formData = new FormData(this);
+        const messageElement = document.getElementById("postMessage");
+        formData.append("questions", JSON.stringify(questions));
+
+        try {
+          const response = await fetch("http://localhost:5000/api/items", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            messageElement.textContent =
+              "Item posted successfully! Redirecting...";
+            messageElement.style.color = "green";
+
+            // Redirect to found items page
+            setTimeout(() => {
+              window.location.href = "items.html";
+            }, 1500);
+          } else {
+            messageElement.textContent =
+              data.message || "Failed to post item";
+            messageElement.style.color = "red";
+          }
+        } catch (error) {
+          messageElement.textContent = "An error occurred. Please try again.";
+          messageElement.style.color = "red";
+          console.error("Post error:", error);
+        }
+      });
+
+    /* // to handle file uploads
+    document
+      .getElementById("post-form")
+      .addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const token = localStorage.getItem("token");
+
+        try {
+          const response = await fetch("http://localhost:5000/api/items", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          });
+
+          if (response.ok) {
+            alert("Item posted successfully!");
+            window.location.href = "items.html";
+          } else {
+            const data = await response.json();
+            alert(data.message || "Failed to post item");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("An error occurred while posting the item");
+        }
+      }); */
+  </script>
+</body>
+
+</html>
